@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
     
     steps:
     - uses: actions/checkout@v4
@@ -62,26 +62,51 @@ jobs:
       
     - name: Setup WiX Toolset
       run: |
-        Write-Host "Downloading WiX Toolset..." -ForegroundColor Yellow
-        $wixUrl = "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe"
-        Invoke-WebRequest -Uri $wixUrl -OutFile "wix311.exe"
+        Write-Host "Installing WiX Toolset via Chocolatey..." -ForegroundColor Yellow
         
-        Write-Host "Installing WiX Toolset..." -ForegroundColor Yellow
-        Start-Process -FilePath "wix311.exe" -ArgumentList "/quiet" -Wait
+        # Install WiX via chocolatey (pre-installed on GitHub runners)
+        choco install wixtoolset -y
         
-        # Verify installation
-        $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
-        if (-not (Test-Path "$wixPath\candle.exe")) {
-          Write-Error "WiX installation failed - candle.exe not found"
-          exit 1
+        # Refresh environment variables
+        $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")
+        
+        # Check multiple possible installation paths
+        $possiblePaths = @(
+          "C:\Program Files (x86)\WiX Toolset v3.11\bin",
+          "C:\Program Files\WiX Toolset v3.11\bin",
+          "C:\ProgramData\chocolatey\lib\wixtoolset\tools"
+        )
+        
+        $wixPath = $null
+        foreach ($path in $possiblePaths) {
+          if (Test-Path "$path\candle.exe") {
+            $wixPath = $path
+            Write-Host "Found WiX at: $wixPath" -ForegroundColor Green
+            break
+          }
         }
         
-        Write-Host "WiX Toolset installed successfully" -ForegroundColor Green
+        if (-not $wixPath) {
+          Write-Host "Searching for candle.exe in system..." -ForegroundColor Yellow
+          $candleExe = Get-ChildItem -Path "C:\" -Name "candle.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($candleExe) {
+            $wixPath = Split-Path $candleExe.FullName
+            Write-Host "Found WiX at: $wixPath" -ForegroundColor Green
+          } else {
+            Write-Error "WiX installation failed - candle.exe not found anywhere"
+            exit 1
+          }
+        }
+        
+        # Set environment variable for next steps
+        echo "WIX_PATH=$wixPath" >> $env:GITHUB_ENV
+        Write-Host "WiX Toolset installed successfully at: $wixPath" -ForegroundColor Green
       shell: powershell
       
     - name: Build MSI Installer
       run: |
-        $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+        $wixPath = $env:WIX_PATH
+        Write-Host "Using WiX path: $wixPath" -ForegroundColor Yellow
         
         Write-Host "Building MSI installer..." -ForegroundColor Yellow
         
