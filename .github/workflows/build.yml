@@ -20,14 +20,11 @@ jobs:
       
     - name: Build Application
       run: |
-        # Set execution policy for this session
         Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
         
-        # List files to debug
         Write-Host "Current directory contents:" -ForegroundColor Yellow
         Get-ChildItem -Force
         
-        # Check if source files exist
         Write-Host "Checking source files..." -ForegroundColor Yellow
         $sourceFiles = @("Program.cs", "TrayApplication.cs", "GlobalKeyboardHook.cs")
         foreach ($file in $sourceFiles) {
@@ -38,11 +35,9 @@ jobs:
           }
         }
         
-        # Build the application
         Write-Host "Starting build..." -ForegroundColor Yellow
         .\build.ps1
         
-        # Verify the executable was created
         if (-not (Test-Path "CaseToggler.exe")) {
           Write-Error "Build failed - CaseToggler.exe not found"
           Get-ChildItem -Force
