@@ -40,47 +40,62 @@ jobs:
       shell: powershell
       
     - name: Setup WiX Toolset
+      shell: powershell
       run: |
-        Write-Host "Installing WiX Toolset via Chocolatey..." -ForegroundColor Yellow
+        Write-Host "Setting up WiX Toolset..." -ForegroundColor Yellow
         
-        # Install WiX via chocolatey (pre-installed on GitHub runners)
-        choco install wixtoolset -y
-        
-        # Refresh environment variables
-        $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")
-        
-        # Check multiple possible installation paths
-        $possiblePaths = @(
-          "C:\Program Files (x86)\WiX Toolset v3.11\bin",
-          "C:\Program Files\WiX Toolset v3.11\bin",
-          "C:\ProgramData\chocolatey\lib\wixtoolset\tools"
-        )
-        
-        $wixPath = $null
-        foreach ($path in $possiblePaths) {
-          if (Test-Path "$path\candle.exe") {
-            $wixPath = $path
-            Write-Host "Found WiX at: $wixPath" -ForegroundColor Green
-            break
+        # Check if WiX is already available in PATH
+        $candleInPath = Get-Command candle.exe -ErrorAction SilentlyContinue
+        if ($candleInPath) {
+          $wixPath = Split-Path $candleInPath.Source
+          Write-Host "Found WiX in PATH at: $wixPath" -ForegroundColor Green
+        } else {
+          # Check common installation paths for different versions
+          $possiblePaths = @(
+            "C:\Program Files (x86)\WiX Toolset v3.14\bin",
+            "C:\Program Files\WiX Toolset v3.14\bin", 
+            "C:\Program Files (x86)\WiX Toolset v3.11\bin",
+            "C:\Program Files\WiX Toolset v3.11\bin",
+            "C:\ProgramData\chocolatey\lib\wixtoolset\tools",
+            "C:\ProgramData\chocolatey\bin"
+          )
+          
+          $wixPath = $null
+          foreach ($path in $possiblePaths) {
+            Write-Host "Checking: $path" -ForegroundColor Gray
+            if (Test-Path "$path\candle.exe") {
+              $wixPath = $path
+              Write-Host "Found WiX at: $wixPath" -ForegroundColor Green
+              break
+            }
           }
-        }
-        
-        if (-not $wixPath) {
-          Write-Host "Searching for candle.exe in system..." -ForegroundColor Yellow
-          $candleExe = Get-ChildItem -Path "C:\" -Name "candle.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($candleExe) {
-            $wixPath = Split-Path $candleExe.FullName
-            Write-Host "Found WiX at: $wixPath" -ForegroundColor Green
-          } else {
-            Write-Error "WiX installation failed - candle.exe not found anywhere"
+          
+          if (-not $wixPath) {
+            # Quick targeted search in likely directories only
+            Write-Host "Searching Program Files..." -ForegroundColor Yellow
+            $wixDirs = Get-ChildItem -Path "C:\Program Files*" -Name "*WiX*" -Directory -ErrorAction SilentlyContinue
+            foreach ($dir in $wixDirs) {
+              $testPath = "C:\Program Files\$dir\bin\candle.exe"
+              if (Test-Path $testPath) {
+                $wixPath = "C:\Program Files\$dir\bin"
+                break
+              }
+              $testPath = "C:\Program Files (x86)\$dir\bin\candle.exe"  
+              if (Test-Path $testPath) {
+                $wixPath = "C:\Program Files (x86)\$dir\bin"
+                break
+              }
+            }
+          }
+          
+          if (-not $wixPath) {
+            Write-Error "WiX Toolset not found. Please install WiX Toolset."
             exit 1
           }
         }
         
-        # Set environment variable for next steps
         echo "WIX_PATH=$wixPath" >> $env:GITHUB_ENV
-        Write-Host "WiX Toolset installed successfully at: $wixPath" -ForegroundColor Green
-      shell: powershell
+        Write-Host "WiX Toolset ready at: $wixPath" -ForegroundColor Green
       
     - name: Build MSI Installer
       run: |
