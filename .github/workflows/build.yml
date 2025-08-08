@@ -22,15 +22,23 @@ jobs:
       run: .\build.ps1
       shell: powershell
       
-    - name: Setup Inno Setup
+    - name: Enable .NET Framework 3.5
       run: |
-        Invoke-WebRequest -Uri "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe" -OutFile "innosetup.exe"
-        Start-Process -FilePath "innosetup.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+        Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -All -NoRestart
       shell: powershell
       
-    - name: Build Installer
+    - name: Setup WiX Toolset
       run: |
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer.iss"
+        $wixUrl = "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe"
+        Invoke-WebRequest -Uri $wixUrl -OutFile "wix311.exe"
+        Start-Process -FilePath "wix311.exe" -ArgumentList "/quiet" -Wait
+      shell: powershell
+      
+    - name: Build MSI Installer
+      run: |
+        $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+        & "$wixPath\candle.exe" "CaseToggler.wxs" -out "dist\CaseToggler.wixobj"
+        & "$wixPath\light.exe" "dist\CaseToggler.wixobj" -ext WixUIExtension -out "dist\CaseToggler-Setup-v1.0.0.msi"
       shell: powershell
       
     - name: Upload Executable Artifact
@@ -39,11 +47,11 @@ jobs:
         name: CaseToggler-exe
         path: CaseToggler.exe
         
-    - name: Upload Installer Artifact
+    - name: Upload MSI Installer Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: CaseToggler-installer
-        path: dist/CaseToggler-Setup-v1.0.0.exe
+        name: CaseToggler-msi-installer
+        path: dist/CaseToggler-Setup-v1.0.0.msi
         
     - name: Upload Executable to Release
       if: github.event_name == 'release'
@@ -56,13 +64,13 @@ jobs:
         asset_name: CaseToggler.exe
         asset_content_type: application/octet-stream
         
-    - name: Upload Installer to Release
+    - name: Upload MSI Installer to Release
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/CaseToggler-Setup-v1.0.0.exe
-        asset_name: CaseToggler-Setup-v1.0.0.exe
+        asset_path: ./dist/CaseToggler-Setup-v1.0.0.msi
+        asset_name: CaseToggler-Setup-v1.0.0.msi
         asset_content_type: application/octet-stream
