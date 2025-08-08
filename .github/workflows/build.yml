@@ -23,12 +23,29 @@ jobs:
         # Set execution policy for this session
         Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
         
+        # List files to debug
+        Write-Host "Current directory contents:" -ForegroundColor Yellow
+        Get-ChildItem -Force
+        
+        # Check if source files exist
+        Write-Host "Checking source files..." -ForegroundColor Yellow
+        $sourceFiles = @("Program.cs", "TrayApplication.cs", "GlobalKeyboardHook.cs")
+        foreach ($file in $sourceFiles) {
+          if (Test-Path $file) {
+            Write-Host "✓ $file exists" -ForegroundColor Green
+          } else {
+            Write-Host "✗ $file missing" -ForegroundColor Red
+          }
+        }
+        
         # Build the application
+        Write-Host "Starting build..." -ForegroundColor Yellow
         .\build.ps1
         
         # Verify the executable was created
         if (-not (Test-Path "CaseToggler.exe")) {
           Write-Error "Build failed - CaseToggler.exe not found"
+          Get-ChildItem -Force
           exit 1
         }
         
@@ -105,22 +122,10 @@ jobs:
         
     - name: Upload Executable to Release
       if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          CaseToggler.exe
+          dist/CaseToggler-Setup-v1.0.0.msi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./CaseToggler.exe
-        asset_name: CaseToggler.exe
-        asset_content_type: application/octet-stream
-        
-    - name: Upload MSI Installer to Release
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/CaseToggler-Setup-v1.0.0.msi
-        asset_name: CaseToggler-Setup-v1.0.0.msi
-        asset_content_type: application/octet-stream
