@@ -139,7 +139,49 @@ jobs:
         name: CaseToggler-msi-installer
         path: dist/CaseToggler-Setup-v1.0.0.msi
         
-    - name: Upload Executable to Release
+    - name: Generate Release Tag
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      id: tag
+      shell: powershell
+      run: |
+        $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $tag = "v1.0.0-build-$timestamp"
+        echo "tag=$tag" >> $env:GITHUB_OUTPUT
+        echo "Generated tag: $tag"
+        
+    - name: Create Auto Release
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: "Case Toggler ${{ steps.tag.outputs.tag }}"
+        body: |
+          🚀 **Automated Release**
+          
+          This release was automatically created from the latest successful build.
+          
+          **What's included:**
+          - `CaseToggler.exe` - The main application executable
+          - `CaseToggler-Setup-v1.0.0.msi` - Windows installer package
+          
+          **Installation:**
+          1. Download and run the MSI installer for easy installation
+          2. Or download the EXE file to run directly
+          
+          **Usage:**
+          - Run as administrator for global keyboard hooks
+          - Use LEFT SHIFT shortcuts to toggle text case
+          
+          Built from commit: ${{ github.sha }}
+        files: |
+          CaseToggler.exe
+          dist/CaseToggler-Setup-v1.0.0.msi
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload Executable to Manual Release
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v1
       with:
