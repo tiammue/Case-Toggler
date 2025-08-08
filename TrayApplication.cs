@@ -34,12 +34,27 @@ namespace CaseToggler
 
         private Icon CreateIcon()
         {
-            // Create a simple icon programmatically
-            var bitmap = new Bitmap(16, 16);
+            // Create "Aa" icon with black text on white background
+            var bitmap = new Bitmap(32, 32);
             using (var g = Graphics.FromImage(bitmap))
             {
-                g.Clear(Color.Blue);
-                g.DrawString("Aa", new Font("Arial", 8, FontStyle.Bold), Brushes.White, 0, 2);
+                // Enable anti-aliasing for smoother text
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+                
+                // White background with subtle border
+                g.Clear(Color.White);
+                g.DrawRectangle(new Pen(Color.LightGray, 1), 0, 0, 31, 31);
+                
+                // Black "Aa" text, centered
+                using (var font = new Font("Segoe UI", 14, FontStyle.Bold))
+                {
+                    var textSize = g.MeasureString("Aa", font);
+                    var x = (32 - textSize.Width) / 2;
+                    var y = (32 - textSize.Height) / 2;
+                    
+                    g.DrawString("Aa", font, Brushes.Black, x, y);
+                }
             }
             return Icon.FromHandle(bitmap.GetHicon());
         }

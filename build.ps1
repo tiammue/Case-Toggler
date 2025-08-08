@@ -13,6 +13,16 @@ foreach ($file in $sourceFiles) {
     }
 }
 
+# Create icon if it doesn't exist
+if (-not (Test-Path "icon.png")) {
+    Write-Host "Creating application icon..." -ForegroundColor Yellow
+    try {
+        .\create-icon.ps1
+    } catch {
+        Write-Host "Warning: Could not create icon, using programmatic icon instead" -ForegroundColor Yellow
+    }
+}
+
 # Find the .NET Framework C# compiler
 $dotnetDirs = @(
     "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319",
