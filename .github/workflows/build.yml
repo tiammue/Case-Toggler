@@ -22,13 +22,30 @@ jobs:
       run: .\build.ps1
       shell: powershell
       
-    - name: Upload artifact
+    - name: Setup Inno Setup
+      run: |
+        Invoke-WebRequest -Uri "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe" -OutFile "innosetup.exe"
+        Start-Process -FilePath "innosetup.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+      shell: powershell
+      
+    - name: Build Installer
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer.iss"
+      shell: powershell
+      
+    - name: Upload Executable Artifact
       uses: actions/upload-artifact@v4
       with:
         name: CaseToggler-exe
         path: CaseToggler.exe
         
-    - name: Upload Release Asset
+    - name: Upload Installer Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: CaseToggler-installer
+        path: dist/CaseToggler-Setup-v1.0.0.exe
+        
+    - name: Upload Executable to Release
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1
       env:
@@ -37,4 +54,15 @@ jobs:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./CaseToggler.exe
         asset_name: CaseToggler.exe
+        asset_content_type: application/octet-stream
+        
+    - name: Upload Installer to Release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./dist/CaseToggler-Setup-v1.0.0.exe
+        asset_name: CaseToggler-Setup-v1.0.0.exe
         asset_content_type: application/octet-stream

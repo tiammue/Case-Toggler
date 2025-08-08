@@ -17,10 +17,18 @@ A lightweight Windows tray application that instantly toggles text case with key
 
 ## 🚀 Quick Start
 
-1. **Download** the latest release or build from source
-2. **Run** `CaseToggler.exe` (may require administrator privileges)
+### Option 1: Installer (Recommended)
+1. **Download** `CaseToggler-Setup-v1.0.0.exe` from [releases](https://github.com/tiammue/case-toggler/releases)
+2. **Run the installer** and follow the setup wizard
+3. **Launch automatically** or find "Case Toggler" in Start Menu
+4. **Look** for the "Aa" icon in your system tray
+
+### Option 2: Portable
+1. **Download** `CaseToggler.exe` from [releases](https://github.com/tiammue/case-toggler/releases)
+2. **Run** the executable (may require administrator privileges)
 3. **Look** for the "Aa" icon in your system tray
-4. **Select text** and double-tap LEFT SHIFT to toggle case!
+
+**Ready to use!** Select text anywhere and double-tap LEFT SHIFT to toggle case!
 
 ## 📖 Usage Examples
 
@@ -43,8 +51,9 @@ A lightweight Windows tray application that instantly toggles text case with key
 - Windows OS
 - .NET Framework 4.7.2+ (usually pre-installed)
 - C# compiler (included with Windows)
+- [Inno Setup 6](https://jrsoftware.org/isinfo.php) (for installer)
 
-### Build Options
+### Build Executable
 
 **Option 1: PowerShell (Recommended)**
 ```powershell
@@ -56,10 +65,19 @@ A lightweight Windows tray application that instantly toggles text case with key
 build.bat
 ```
 
-**Option 3: Manual**
-```cmd
-csc.exe /target:winexe /out:CaseToggler.exe /reference:System.dll /reference:System.Core.dll /reference:System.Drawing.dll /reference:System.Windows.Forms.dll Program.cs TrayApplication.cs GlobalKeyboardHook.cs
+### Build Installer
+
+**Option 1: PowerShell**
+```powershell
+.\build-installer.ps1
 ```
+
+**Option 2: Batch File**
+```cmd
+build-installer.bat
+```
+
+See [INSTALLER_README.md](INSTALLER_README.md) for detailed installer build instructions.
 
 ## 🏗️ Architecture
 
@@ -86,9 +104,20 @@ Right-click the tray icon to access:
 - **Clipboard-safe** - your original clipboard content is always restored
 - **Performance optimized** - uses smart waiting instead of fixed delays
 
+## 📦 Download Options
+
+| Download Type | File | Description |
+|---------------|------|-------------|
+| **Installer** | `CaseToggler-Setup-v1.0.0.exe` | Full installation with Start Menu, auto-startup option |
+| **Portable** | `CaseToggler.exe` | Single executable, no installation required |
+
+Both options are available in [GitHub Releases](https://github.com/tiammue/case-toggler/releases).
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 📄 License
 
