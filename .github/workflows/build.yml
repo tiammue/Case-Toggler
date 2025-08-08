@@ -1,0 +1,126 @@
+name: Build Case Toggler
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET Framework
+      uses: microsoft/setup-msbuild@v2
+      
+    - name: Build Application
+      run: |
+        # Set execution policy for this session
+        Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+        
+        # Build the application
+        .\build.ps1
+        
+        # Verify the executable was created
+        if (-not (Test-Path "CaseToggler.exe")) {
+          Write-Error "Build failed - CaseToggler.exe not found"
+          exit 1
+        }
+        
+        Write-Host "Build completed successfully" -ForegroundColor Green
+      shell: powershell
+      
+    - name: Create dist directory
+      run: |
+        if (-not (Test-Path "dist")) {
+          New-Item -ItemType Directory -Path "dist" -Force
+          Write-Host "Created dist directory" -ForegroundColor Green
+        }
+      shell: powershell
+      
+    - name: Setup WiX Toolset
+      run: |
+        Write-Host "Downloading WiX Toolset..." -ForegroundColor Yellow
+        $wixUrl = "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe"
+        Invoke-WebRequest -Uri $wixUrl -OutFile "wix311.exe"
+        
+        Write-Host "Installing WiX Toolset..." -ForegroundColor Yellow
+        Start-Process -FilePath "wix311.exe" -ArgumentList "/quiet" -Wait
+        
+        # Verify installation
+        $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+        if (-not (Test-Path "$wixPath\candle.exe")) {
+          Write-Error "WiX installation failed - candle.exe not found"
+          exit 1
+        }
+        
+        Write-Host "WiX Toolset installed successfully" -ForegroundColor Green
+      shell: powershell
+      
+    - name: Build MSI Installer
+      run: |
+        $wixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+        
+        Write-Host "Building MSI installer..." -ForegroundColor Yellow
+        
+        # Compile WiX source
+        & "$wixPath\candle.exe" "CaseToggler.wxs" -out "dist\CaseToggler.wixobj"
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "WiX compilation failed"
+          exit 1
+        }
+        
+        # Link to create MSI
+        & "$wixPath\light.exe" "dist\CaseToggler.wixobj" -ext WixUIExtension -out "dist\CaseToggler-Setup-v1.0.0.msi"
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "WiX linking failed"
+          exit 1
+        }
+        
+        # Verify MSI was created
+        if (-not (Test-Path "dist\CaseToggler-Setup-v1.0.0.msi")) {
+          Write-Error "MSI creation failed - file not found"
+          exit 1
+        }
+        
+        Write-Host "MSI installer created successfully" -ForegroundColor Green
+      shell: powershell
+      
+    - name: Upload Executable Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: CaseToggler-exe
+        path: CaseToggler.exe
+        
+    - name: Upload MSI Installer Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: CaseToggler-msi-installer
+        path: dist/CaseToggler-Setup-v1.0.0.msi
+        
+    - name: Upload Executable to Release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./CaseToggler.exe
+        asset_name: CaseToggler.exe
+        asset_content_type: application/octet-stream
+        
+    - name: Upload MSI Installer to Release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./dist/CaseToggler-Setup-v1.0.0.msi
+        asset_name: CaseToggler-Setup-v1.0.0.msi
+        asset_content_type: application/octet-stream

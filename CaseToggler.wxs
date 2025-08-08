@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" 
+           Name="Case Toggler" 
+           Language="1033" 
+           Version="1.0.0.0" 
+           Manufacturer="tiammue" 
+           UpgradeCode="12345678-1234-5678-9012-123456789012">
+    
+    <Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perMachine" 
+             InstallPrivileges="elevated"
+             Description="Case Toggler - Text case toggling utility"
+             Comments="Toggle text case with LEFT SHIFT shortcuts"
+             Manufacturer="tiammue" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Features -->
+    <Feature Id="ProductFeature" Title="Case Toggler" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="StartupRegistryComponent" />
+      <ComponentRef Id="StartMenuShortcuts" />
+    </Feature>
+
+    <!-- Properties -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="STARTUP" Value="1" />
+
+    <!-- UI -->
+    <UIRef Id="WixUI_InstallDir" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
+    <!-- License -->
+    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
+    <!-- Custom Action to stop running app -->
+    <CustomAction Id="StopCaseToggler" 
+                  ExeCommand="taskkill /f /im CaseToggler.exe" 
+                  Directory="System64Folder" 
+                  Execute="immediate" 
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="StopCaseToggler" Before="InstallValidate">Installed</Custom>
+    </InstallExecuteSequence>
+  </Product>
+
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="Case Toggler" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Case Toggler" />
+      </Directory>
+      <Directory Id="System64Folder" />
+    </Directory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="CaseTogglerExe" Guid="*">
+        <File Id="CaseTogglerExeFile" Source="CaseToggler.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="ReadmeFile" Guid="*">
+        <File Id="ReadmeFileFile" Source="README.md" />
+      </Component>
+      <Component Id="LicenseFile" Guid="*">
+        <File Id="LicenseFileFile" Source="LICENSE" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Startup Registry Entry -->
+    <Component Id="StartupRegistryComponent" Directory="INSTALLFOLDER" Guid="*">
+      <Condition>STARTUP = "1"</Condition>
+      <RegistryValue Root="HKCU" 
+                     Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run" 
+                     Name="Case Toggler" 
+                     Type="string" 
+                     Value="[INSTALLFOLDER]CaseToggler.exe" 
+                     KeyPath="yes" />
+    </Component>
+
+    <!-- Start Menu Shortcuts -->
+    <Component Id="StartMenuShortcuts" Directory="ApplicationProgramsFolder" Guid="*">
+      <Shortcut Id="ApplicationStartMenuShortcut"
+                Name="Case Toggler"
+                Description="Toggle text case with keyboard shortcuts"
+                Target="[INSTALLFOLDER]CaseToggler.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <Shortcut Id="UninstallShortcut"
+                Name="Uninstall Case Toggler"
+                Description="Uninstall Case Toggler"
+                Target="[SystemFolder]msiexec.exe"
+                Arguments="/x [ProductCode]" />
+      <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\tiammue\CaseToggler" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>
