@@ -19,33 +19,17 @@ jobs:
       uses: microsoft/setup-msbuild@v2
       
     - name: Build Application
+      shell: powershell
       run: |
         Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-        
-        Write-Host "Current directory contents:" -ForegroundColor Yellow
+        Write-Host "Building Case Toggler..." -ForegroundColor Green
         Get-ChildItem -Force
-        
-        Write-Host "Checking source files..." -ForegroundColor Yellow
-        $sourceFiles = @("Program.cs", "TrayApplication.cs", "GlobalKeyboardHook.cs")
-        foreach ($file in $sourceFiles) {
-          if (Test-Path $file) {
-            Write-Host "✓ $file exists" -ForegroundColor Green
-          } else {
-            Write-Host "✗ $file missing" -ForegroundColor Red
-          }
-        }
-        
-        Write-Host "Starting build..." -ForegroundColor Yellow
         .\build.ps1
-        
-        if (-not (Test-Path "CaseToggler.exe")) {
-          Write-Error "Build failed - CaseToggler.exe not found"
-          Get-ChildItem -Force
-          exit 1
+        if (!(Test-Path "CaseToggler.exe")) { 
+          Write-Error "Build failed - executable not found"
+          exit 1 
         }
-        
-        Write-Host "Build completed successfully" -ForegroundColor Green
-      shell: powershell
+        Write-Host "Build successful!" -ForegroundColor Green
       
     - name: Create dist directory
       run: |
